@@ -1,0 +1,198 @@
+---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+  failed_when: false
+
+- name: Update package cache (Ubuntu/Debian)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache (Rocky/RedHat)
+  dnf:
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install required packages (Ubuntu/Debian)
+  apt:
+    name: "{{ packages.ubuntu }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install required packages (Rocky/RedHat)
+  dnf:
+    name: "{{ packages.rocky }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Remove default Apache index file
+  file:
+    path: "{{ web_document_root[ansible_os_family | lower] }}/index.html"
+    state: absent
+  notify: restart web server
+
+- name: Start and enable MariaDB service
+  systemd:
+    name: "{{ services[ansible_os_family | lower].database }}"
+    state: started
+    enabled: yes
+  register: mariadb_service
+
+- name: Wait for MariaDB to be ready
+  wait_for:
+    port: 3306
+    host: localhost
+    timeout: 60
+  when: mariadb_service.changed
+
+- name: Check if MariaDB root password is set
+  mysql_user:
+    name: root
+    host: localhost
+    password: "{{ db_root_password }}"
+    check_implicit_admin: yes
+    login_user: root
+    login_password: "{{ db_root_password }}"
+  register: mysql_root_check
+  failed_when: false
+  changed_when: false
+
+- name: Set MariaDB root password
+  mysql_user:
+    name: root
+    host: localhost
+    password: "{{ db_root_password }}"
+    check_implicit_admin: yes
+  when: mysql_root_check.failed
+
+- name: Remove anonymous MariaDB users
+  mysql_user:
+    name: ""
+    host_all: yes
+    state: absent
+    login_user: root
+    login_password: "{{ db_root_password }}"
+
+- name: Remove MariaDB test database
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ db_root_password }}"
+
+- name: Create WordPress database
+  mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    login_user: root
+    login_password: "{{ db_root_password }}"
+
+- name: Create WordPress database user
+  mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    priv: "{{ db_name }}.*:ALL"
+    host: "{{ db_host }}"
+    state: present
+    login_user: root
+    login_password: "{{ db_root_password }}"
+
+- name: Check if WordPress is already downloaded
+  stat:
+    path: "{{ wordpress_path }}/wp-config-sample.php"
+  register: wordpress_exists
+
+- name: Download WordPress
+  get_url:
+    url: "https://wordpress.org/latest.zip"
+    dest: "/tmp/wordpress.zip"
+    mode: '0644'
+  when: not wordpress_exists.stat.exists
+
+- name: Extract WordPress
+  unarchive:
+    src: "/tmp/wordpress.zip"
+    dest: "/tmp"
+    remote_src: yes
+  when: not wordpress_exists.stat.exists
+
+- name: Copy WordPress files
+  copy:
+    src: "/tmp/wordpress/"
+    dest: "{{ wordpress_path }}/"
+    remote_src: yes
+    owner: "{{ web_user[ansible_os_family | lower] }}"
+    group: "{{ web_group[ansible_os_family | lower] }}"
+    mode: '0755'
+  when: not wordpress_exists.stat.exists
+  notify: restart web server
+
+- name: Generate WordPress salts
+  uri:
+    url: "https://api.wordpress.org/secret-key/1.1/salt/"
+    return_content: yes
+  register: wp_salts
+  when: wp_auth_key == ""
+
+- name: Set WordPress salts from API
+  set_fact:
+    wp_salts_content: "{{ wp_salts.content }}"
+  when: wp_auth_key == ""
+
+- name: Check if wp-config.php exists
+  stat:
+    path: "{{ wordpress_path }}/wp-config.php"
+  register: wp_config_exists
+
+- name: Generate wp-config.php from template
+  template:
+    src: wp-config.php.j2
+    dest: "{{ wordpress_path }}/wp-config.php"
+    owner: "{{ web_user[ansible_os_family | lower] }}"
+    group: "{{ web_group[ansible_os_family | lower] }}"
+    mode: '0640'
+  when: not wp_config_exists.stat.exists
+
+- name: Create WordPress virtual host configuration
+  template:
+    src: wordpress.conf.j2
+    dest: "{{ web_config_path[ansible_os_family | lower] }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart web server
+
+- name: Enable WordPress site (Ubuntu/Debian)
+  command: a2ensite wordpress.conf
+  when: ansible_os_family == "Debian"
+  notify: restart web server
+
+- name: Enable mod_rewrite (Ubuntu/Debian)
+  apache2_module:
+    name: rewrite
+    state: present
+  when: ansible_os_family == "Debian"
+  notify: restart web server
+
+- name: Start and enable web server
+  systemd:
+    name: "{{ services[ansible_os_family | lower].web_server }}"
+    state: started
+    enabled: yes
+
+- name: Set correct permissions for WordPress
+  file:
+    path: "{{ wordpress_path }}"
+    owner: "{{ web_user[ansible_os_family | lower] }}"
+    group: "{{ web_group[ansible_os_family | lower] }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Clean up temporary files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/wordpress.zip"
+    - "/tmp/wordpress"

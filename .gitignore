@@ -1,0 +1,23 @@
+# Ansible
+*.retry
+.vault_pass
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Virtual environments
+venv/
+.env

@@ -1,0 +1,34 @@
+---
+galaxy_info:
+  role_name: wordpress
+  namespace: dexteria78
+  author: "Dexteria78"
+  description: "Ansible role for WordPress installation with MariaDB on Ubuntu and Rocky Linux"
+  company: "Personal"
+  license: "MIT"
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - 8
+        - 9
+  galaxy_tags:
+    - wordpress
+    - web
+    - php
+    - mysql
+    - mariadb
+    - apache
+    - httpd
+    - cms
+    - webserver
+
+dependencies: []
+
+collections:
+  - community.mysql
+  - ansible.posix

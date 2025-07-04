@@ -1,0 +1,8 @@
+---
+- hosts: localhost
+  remote_user: root
+  roles:
+    - ansible-role-wordpress
+  vars:
+    vault_db_password: "TestPassword123!"
+    vault_db_root_password: "TestRootPassword123!"

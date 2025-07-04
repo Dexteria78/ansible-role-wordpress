@@ -1,0 +1,47 @@
+---
+# Variables spécifiques par OS
+packages:
+  ubuntu:
+    - apache2
+    - php
+    - libapache2-mod-php
+    - php-mysql
+    - mariadb-server
+    - wget
+    - unzip
+    - curl
+  rocky:
+    - httpd
+    - php
+    - php-mysqlnd
+    - php-gd
+    - php-xml
+    - php-mbstring
+    - mariadb-server
+    - wget
+    - unzip
+    - curl
+
+services:
+  ubuntu:
+    web_server: apache2
+    database: mariadb
+  rocky:
+    web_server: httpd
+    database: mariadb
+
+web_config_path:
+  ubuntu: "/etc/apache2/sites-available/wordpress.conf"
+  rocky: "/etc/httpd/conf.d/wordpress.conf"
+
+web_document_root:
+  ubuntu: "/var/www/html"
+  rocky: "/var/www/html"
+
+web_user:
+  ubuntu: "www-data"
+  rocky: "apache"
+
+web_group:
+  ubuntu: "www-data"
+  rocky: "apache"

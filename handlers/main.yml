@@ -1,0 +1,18 @@
+---
+- name: restart web server
+  systemd:
+    name: "{{ services[ansible_os_family | lower].web_server }}"
+    state: restarted
+  listen: restart web server
+
+- name: reload web server
+  systemd:
+    name: "{{ services[ansible_os_family | lower].web_server }}"
+    state: reloaded
+  listen: reload web server
+
+- name: restart mariadb
+  systemd:
+    name: "{{ services[ansible_os_family | lower].database }}"
+    state: restarted
+  listen: restart mariadb

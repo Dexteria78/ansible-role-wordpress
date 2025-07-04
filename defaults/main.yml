@@ -1,0 +1,33 @@
+---
+# Variables par défaut configurables
+wordpress_version: "latest"
+wordpress_path: "/var/www/html"
+wordpress_owner: "www-data"
+wordpress_group: "www-data"
+
+# Base de données
+db_name: "wordpress"
+db_user: "wpuser"
+db_password: "{{ vault_db_password | default('ChangeMe123!') }}"
+db_root_password: "{{ vault_db_root_password | default('RootPass123!') }}"
+db_host: "localhost"
+
+# Apache/HTTP configuration
+apache_server_admin: "admin@localhost"
+apache_document_root: "{{ wordpress_path }}"
+apache_server_name: "{{ ansible_default_ipv4.address }}"
+
+# WordPress configuration
+wp_debug: false
+wp_debug_log: false
+wp_debug_display: false
+
+# Security salts (will be generated automatically)
+wp_auth_key: ""
+wp_secure_auth_key: ""
+wp_logged_in_key: ""
+wp_nonce_key: ""
+wp_auth_salt: ""
+wp_secure_auth_salt: ""
+wp_logged_in_salt: ""
+wp_nonce_salt: ""
