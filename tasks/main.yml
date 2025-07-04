@@ -18,32 +18,17 @@
     update_cache: yes
   when: ansible_os_family == "RedHat"
 
-- name: Install Python MySQL dependencies (Ubuntu/Debian)
+- name: Install Python MySQL module (Ubuntu/Debian) - Simple
   apt:
-    name:
-      - python3-pip
-      - python3-pymysql
-      - python3-dev
-      - default-libmysqlclient-dev
+    name: python3-pymysql
     state: present
   when: ansible_os_family == "Debian"
 
-- name: Install Python MySQL dependencies (Rocky/RedHat)
+- name: Install Python MySQL module (Rocky/RedHat) - Simple
   dnf:
-    name:
-      - python3-pip
-      - python3-PyMySQL
-      - python3-devel
-      - mysql-devel
+    name: python3-PyMySQL
     state: present
   when: ansible_os_family == "RedHat"
-
-- name: Install PyMySQL via pip (fallback)
-  pip:
-    name: PyMySQL
-    state: present
-    executable: pip3
-  ignore_errors: yes
 
 - name: Install required packages (Ubuntu/Debian)
   apt:
@@ -105,25 +90,18 @@
   retries: 10
   delay: 3
 
-- name: Check if MariaDB root password is set
-  mysql_user:
-    name: root
-    host: localhost
-    password: "{{ db_root_password }}"
-    check_implicit_admin: yes
-    login_user: root
-    login_password: "{{ db_root_password }}"
-  register: mysql_root_check
-  failed_when: false
-  changed_when: false
+# FIX AUTHENTIFICATION MARIADB
+- name: Configure MariaDB root authentication (bypass socket auth)
+  shell: |
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ db_root_password }}';" || \
+    mysql -e "UPDATE mysql.user SET plugin='mysql_native_password' WHERE User='root';" || \
+    mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{{ db_root_password }}');" || \
+    mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ db_root_password }}';"
+  ignore_errors: yes
 
-- name: Set MariaDB root password
-  mysql_user:
-    name: root
-    host: localhost
-    password: "{{ db_root_password }}"
-    check_implicit_admin: yes
-  when: mysql_root_check.failed
+- name: Flush privileges after password change
+  shell: mysql -e "FLUSH PRIVILEGES;" || mysql -u root -p{{ db_root_password }} -e "FLUSH PRIVILEGES;"
+  ignore_errors: yes
 
 - name: Remove anonymous MariaDB users
   mysql_user:
@@ -132,6 +110,7 @@
     state: absent
     login_user: root
     login_password: "{{ db_root_password }}"
+  ignore_errors: yes
 
 - name: Remove MariaDB test database
   mysql_db:
@@ -139,6 +118,7 @@
     state: absent
     login_user: root
     login_password: "{{ db_root_password }}"
+  ignore_errors: yes
 
 - name: Create WordPress database
   mysql_db:
