@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: wordpress
-  namespace: dexteria78
+  namespace: Dexteria78
   author: "Dexteria78"
   description: "Ansible role for WordPress installation with MariaDB on Ubuntu and Rocky Linux"
   company: "Personal"
