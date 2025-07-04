@@ -18,6 +18,33 @@
     update_cache: yes
   when: ansible_os_family == "RedHat"
 
+- name: Install Python MySQL dependencies (Ubuntu/Debian)
+  apt:
+    name:
+      - python3-pip
+      - python3-pymysql
+      - python3-dev
+      - default-libmysqlclient-dev
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Python MySQL dependencies (Rocky/RedHat)
+  dnf:
+    name:
+      - python3-pip
+      - python3-PyMySQL
+      - python3-devel
+      - mysql-devel
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install PyMySQL via pip (fallback)
+  pip:
+    name: PyMySQL
+    state: present
+    executable: pip3
+  ignore_errors: yes
+
 - name: Install required packages (Ubuntu/Debian)
   apt:
     name: "{{ packages.ubuntu }}"
@@ -36,14 +63,13 @@
     state: absent
   notify: restart web server
 
-# FIX POUR CONTENEURS DOCKER - MariaDB
-- name: Arrêter tout processus MySQL/MariaDB existant
+- name: Stop any existing MySQL/MariaDB processes
   shell: |
     pkill -f mysqld || true
     pkill -f mariadb || true
   ignore_errors: yes
 
-- name: Créer le répertoire MySQL
+- name: Create MySQL directory
   file:
     path: /var/lib/mysql
     state: directory
@@ -51,28 +77,28 @@
     group: mysql
     mode: '0755'
 
-- name: Initialiser MySQL si nécessaire
+- name: Initialize MySQL database if needed
   shell: |
     if [ ! -d "/var/lib/mysql/mysql" ]; then
       mysql_install_db --user=mysql --datadir=/var/lib/mysql
     fi
   ignore_errors: yes
 
-- name: Démarrer MariaDB en arrière-plan (conteneur)
+- name: Start MariaDB in background (container compatible)
   shell: |
     nohup mysqld_safe --datadir=/var/lib/mysql --user=mysql &
     sleep 5
   register: mysql_start
   ignore_errors: yes
 
-- name: Attendre que MariaDB soit prêt
+- name: Wait for MariaDB to be ready
   wait_for:
     port: 3306
     host: localhost
     timeout: 60
     delay: 2
 
-- name: Vérifier que MySQL répond
+- name: Verify MySQL is responding
   shell: mysqladmin ping
   register: mysql_ping
   until: mysql_ping.rc == 0
@@ -208,12 +234,12 @@
   when: ansible_os_family == "Debian"
   notify: restart web server
 
-- name: Start Apache (Ubuntu/Debian) - Conteneur
+- name: Start Apache (Ubuntu/Debian) - Container compatible
   shell: service apache2 start
   when: ansible_os_family == "Debian"
   ignore_errors: yes
 
-- name: Start httpd (Rocky/RedHat) - Conteneur
+- name: Start httpd (Rocky/RedHat) - Container compatible
   shell: /usr/sbin/httpd -DFOREGROUND &
   when: ansible_os_family == "RedHat"
   ignore_errors: yes
