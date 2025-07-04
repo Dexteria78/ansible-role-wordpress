@@ -10,7 +10,27 @@ packages:
     - wget
     - unzip
     - curl
+  debian:  # AJOUTÉ - même config qu'Ubuntu
+    - apache2
+    - php
+    - libapache2-mod-php
+    - php-mysql
+    - mariadb-server
+    - wget
+    - unzip
+    - curl
   rocky:
+    - httpd
+    - php
+    - php-mysqlnd
+    - php-gd
+    - php-xml
+    - php-mbstring
+    - mariadb-server
+    - wget
+    - unzip
+    - curl
+  redhat:  # AJOUTÉ - même config que Rocky
     - httpd
     - php
     - php-mysqlnd
@@ -26,22 +46,36 @@ services:
   ubuntu:
     web_server: apache2
     database: mariadb
+  debian:  # AJOUTÉ
+    web_server: apache2
+    database: mariadb
   rocky:
+    web_server: httpd
+    database: mariadb
+  redhat:  # AJOUTÉ
     web_server: httpd
     database: mariadb
 
 web_config_path:
   ubuntu: "/etc/apache2/sites-available/wordpress.conf"
+  debian: "/etc/apache2/sites-available/wordpress.conf"  # AJOUTÉ
   rocky: "/etc/httpd/conf.d/wordpress.conf"
+  redhat: "/etc/httpd/conf.d/wordpress.conf"  # AJOUTÉ
 
 web_document_root:
   ubuntu: "/var/www/html"
+  debian: "/var/www/html"  # AJOUTÉ
   rocky: "/var/www/html"
+  redhat: "/var/www/html"  # AJOUTÉ
 
 web_user:
   ubuntu: "www-data"
+  debian: "www-data"  # AJOUTÉ
   rocky: "apache"
+  redhat: "apache"  # AJOUTÉ
 
 web_group:
   ubuntu: "www-data"
+  debian: "www-data"  # AJOUTÉ
   rocky: "apache"
+  redhat: "apache"  # AJOUTÉ
