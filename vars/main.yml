@@ -10,6 +10,7 @@ packages:
     - wget
     - unzip
     - curl
+    - python3-pymysql
   debian:  # AJOUTÉ - même config qu'Ubuntu
     - apache2
     - php
@@ -19,6 +20,7 @@ packages:
     - wget
     - unzip
     - curl
+    - python3-pymysql
   rocky:
     - httpd
     - php
@@ -29,7 +31,8 @@ packages:
     - mariadb-server
     - wget
     - unzip
-    - curl
+    - python3-PyMySQL
+    # curl retiré à cause du conflit avec curl-minimal
   redhat:  # AJOUTÉ - même config que Rocky
     - httpd
     - php
@@ -40,7 +43,8 @@ packages:
     - mariadb-server
     - wget
     - unzip
-    - curl
+    - python3-PyMySQL
+    # curl retiré à cause du conflit avec curl-minimal
 
 services:
   ubuntu:
